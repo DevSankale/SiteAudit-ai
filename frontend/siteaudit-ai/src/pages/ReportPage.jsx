@@ -2,22 +2,28 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function ReportPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [report, setReport] = useState(null);
-  const downloadPDF = () => {
-  window.open(
-    `http://localhost:5000/audits/${id}/pdf`,
-    "_blank"
-  );
-};
 
+  // =========================
+  // DOWNLOAD PDF (FIXED)
+  // =========================
+  const downloadPDF = () => {
+    window.open(`${API_URL}/audits/${id}/pdf`, "_blank");
+  };
+
+  // =========================
+  // FETCH REPORT (FIXED)
+  // =========================
   useEffect(() => {
     axios
-      .get(`http://localhost:5000/audits/${id}`)
+      .get(`${API_URL}/audits/${id}`)
       .then((res) => setReport(res.data))
-      .catch(console.error);
+      .catch((err) => console.error(err));
   }, [id]);
 
   if (!report) {
@@ -45,19 +51,21 @@ function ReportPage() {
         <span>{value}/100</span>
       </div>
 
-      <div style={{
-        height: 8,
-        background: "#e5e7eb",
-        borderRadius: 5,
-        marginTop: 6,
-        overflow: "hidden"
-      }}>
+      <div
+        style={{
+          height: 8,
+          background: "#e5e7eb",
+          borderRadius: 5,
+          marginTop: 6,
+          overflow: "hidden",
+        }}
+      >
         <div
           style={{
             width: `${value}%`,
             height: "100%",
             background: getColor(value),
-            transition: "0.4s ease"
+            transition: "0.4s ease",
           }}
         />
       </div>
@@ -66,18 +74,19 @@ function ReportPage() {
 
   return (
     <div style={{ background: "#f8fafc", minHeight: "100vh" }}>
-
       {/* TOP BAR */}
-      <div style={{
-        position: "sticky",
-        top: 0,
-        background: "white",
-        padding: "12px 20px",
-        display: "flex",
-        justifyContent: "space-between",
-        borderBottom: "1px solid #eee",
-        zIndex: 10
-      }}>
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          background: "white",
+          padding: "12px 20px",
+          display: "flex",
+          justifyContent: "space-between",
+          borderBottom: "1px solid #eee",
+          zIndex: 10,
+        }}
+      >
         <button
           onClick={() => navigate("/")}
           style={{
@@ -85,31 +94,28 @@ function ReportPage() {
             borderRadius: 8,
             border: "1px solid #ddd",
             background: "white",
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           ← Back
         </button>
 
-      <button onClick={downloadPDF} className="audit-button">
-  Download PDF Report
-</button>
-
-          
-
-
+        <button onClick={downloadPDF} className="audit-button">
+          Download PDF Report
+        </button>
       </div>
 
       <div style={{ maxWidth: "1100px", margin: "40px auto", padding: "20px" }}>
-
         {/* HERO CARD */}
-        <div style={{
-          background: "white",
-          padding: 30,
-          borderRadius: 16,
-          boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-          marginBottom: 30
-        }}>
+        <div
+          style={{
+            background: "white",
+            padding: 30,
+            borderRadius: 16,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+            marginBottom: 30,
+          }}
+        >
           <h1>Website Audit Report</h1>
           <p style={{ color: "#666" }}>{report.url}</p>
 
@@ -118,25 +124,29 @@ function ReportPage() {
               {report.overallScore}/100
             </h2>
 
-            <span style={{
-              padding: "6px 12px",
-              borderRadius: 20,
-              background: getColor(report.overallScore),
-              color: "white",
-              fontSize: 12
-            }}>
+            <span
+              style={{
+                padding: "6px 12px",
+                borderRadius: 20,
+                background: getColor(report.overallScore),
+                color: "white",
+                fontSize: 12,
+              }}
+            >
               {getStatus(report.overallScore)}
             </span>
           </div>
         </div>
 
         {/* SCORE BARS */}
-        <div style={{
-          background: "white",
-          padding: 30,
-          borderRadius: 16,
-          marginBottom: 30
-        }}>
+        <div
+          style={{
+            background: "white",
+            padding: 30,
+            borderRadius: 16,
+            marginBottom: 30,
+          }}
+        >
           <h2>Score Breakdown</h2>
 
           <Bar label="SEO" value={report.seoScore} />
@@ -146,37 +156,50 @@ function ReportPage() {
         </div>
 
         {/* ISSUES */}
-        <div style={{
-          background: "white",
-          padding: 30,
-          borderRadius: 16
-        }}>
+        <div
+          style={{
+            background: "white",
+            padding: 30,
+            borderRadius: 16,
+          }}
+        >
           <h2>Issues Found</h2>
 
           {report.issues?.length > 0 ? (
             report.issues.map((issue, i) => (
-              <div key={i} style={{
-                border: "1px solid #eee",
-                padding: 20,
-                borderRadius: 12,
-                marginTop: 15
-              }}>
-                <span style={{
-                  background:
-                    issue.severity === "critical" ? "#ef4444" :
-                    issue.severity === "high" ? "#f97316" :
-                    "#eab308",
-                  color: "white",
-                  padding: "4px 10px",
-                  borderRadius: 20,
-                  fontSize: 12
-                }}>
+              <div
+                key={i}
+                style={{
+                  border: "1px solid #eee",
+                  padding: 20,
+                  borderRadius: 12,
+                  marginTop: 15,
+                }}
+              >
+                <span
+                  style={{
+                    background:
+                      issue.severity === "critical"
+                        ? "#ef4444"
+                        : issue.severity === "high"
+                        ? "#f97316"
+                        : "#eab308",
+                    color: "white",
+                    padding: "4px 10px",
+                    borderRadius: 20,
+                    fontSize: 12,
+                  }}
+                >
                   {issue.severity.toUpperCase()}
                 </span>
 
                 <h3 style={{ marginTop: 10 }}>{issue.issue}</h3>
-                <p><b>Impact:</b> {issue.impact}</p>
-                <p><b>Fix:</b> {issue.fix}</p>
+                <p>
+                  <b>Impact:</b> {issue.impact}
+                </p>
+                <p>
+                  <b>Fix:</b> {issue.fix}
+                </p>
               </div>
             ))
           ) : (

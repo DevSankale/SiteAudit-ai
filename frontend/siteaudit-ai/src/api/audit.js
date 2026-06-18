@@ -10,4 +10,4 @@ export const runAudit = async (url) => {
     console.error("API Error:", error);
     throw new Error(error.response?.data?.error || error.message || "Failed to connect to backend");
   }
-};
+};  
