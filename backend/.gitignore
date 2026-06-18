@@ -1,0 +1,4 @@
+node_modules
+.env
+siteaudit.db
+*.db
