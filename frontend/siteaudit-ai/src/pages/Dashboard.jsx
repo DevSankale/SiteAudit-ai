@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { runAudit } from "../api/audit";
 import { getAuditHistory } from "../api/history";
 import ScoreCard from "../components/ScoreCard";
@@ -13,24 +13,34 @@ function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
 
+  // ✅ hover state for CTA button
+  const [hover, setHover] = useState(false);
+
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchHistory = async () => {
       const result = await getAuditHistory();
-      setHistory(result);
+      setHistory(result || []);
     };
     fetchHistory();
   }, []);
 
   const handleAudit = async () => {
+    if (!url.trim()) return;
+
     setLoading(true);
+    setData(null);
 
     try {
       const result = await runAudit(url);
+
+      console.log("AUDIT RESULT:", result);
+
       setData(result);
 
-      // Refresh history after audit
       const updatedHistory = await getAuditHistory();
-      setHistory(updatedHistory);
+      setHistory(updatedHistory || []);
     } catch (error) {
       console.error("Audit failed:", error);
     }
@@ -38,18 +48,20 @@ function Dashboard() {
     setLoading(false);
   };
 
+  const latestAuditId = history?.[0]?.id;
+
   return (
     <div style={styles.container}>
-      {/* HERO SECTION */}
+      {/* HERO */}
       <div className="hero-section">
         <div className="hero-badge">AI-Powered Website Intelligence</div>
         <h1 className="hero-title">Audit Any Website in Seconds</h1>
         <p className="hero-subtitle">
-          Analyze SEO, UX, Mobile Experience and Performance with actionable recommendations.
+          Analyze SEO, UX, Mobile Experience and Performance with actionable insights.
         </p>
       </div>
 
-      {/* INPUT SECTION */}
+      {/* INPUT */}
       <div className="input-wrapper">
         <div style={styles.inputBox}>
           <input
@@ -59,11 +71,7 @@ function Dashboard() {
             style={styles.input}
           />
 
-          <button
-            onClick={handleAudit}
-            style={styles.button}
-            className="runAuditButton"
-          >
+          <button onClick={handleAudit} style={styles.button}>
             {loading ? "Auditing..." : "Run Audit"}
           </button>
         </div>
@@ -75,25 +83,20 @@ function Dashboard() {
           <div className="skeleton-card"></div>
           <div className="skeleton-card"></div>
           <div className="skeleton-card"></div>
-          <div className="skeleton-card"></div>
-          <div className="skeleton-card"></div>
         </div>
       )}
 
-      {/* =========================
-          PREMIUM AUDIT REPORT
-         ========================= */}
+      {/* RESULTS */}
       {data && (
         <>
-          {/* HERO REPORT */}
           <AuditHero
             report={{
-              website: data.url || url,
+              website: data.url,
               score: data.overallScore,
             }}
           />
 
-          {/* SCORE CARDS */}
+          {/* SCORES */}
           <div style={styles.grid}>
             <ScoreCard label="SEO" value={data.seoScore} />
             <ScoreCard label="UX" value={data.uxScore} />
@@ -102,94 +105,87 @@ function Dashboard() {
           </div>
 
           {/* ISSUES */}
-          <h2 style={{ marginTop: 40 }}>Issues Found</h2>
+          <div style={{ marginTop: 40 }}>
+            <h2>Issues Found</h2>
 
-          {data.issues &&
-            Object.entries(
-              data.issues.reduce((acc, issue) => {
-                if (!acc[issue.category]) acc[issue.category] = [];
-                acc[issue.category].push(issue);
-                return acc;
-              }, {})
-            ).map(([category, issues]) => (
-              <div key={category}>
-                <h3 style={{ marginTop: 30, marginBottom: 15 }}>
-                  {category} Issues
-                </h3>
+            {data.issues?.length ? (
+              data.issues.map((issue, i) => (
+                <div key={i} style={styles.issueCard}>
+                  <div style={styles.badge}>
+                    {issue.severity?.toUpperCase()}
+                  </div>
 
-                <div style={styles.issues}>
-                  {issues.map((issue, i) => (
-                    <div key={i} style={styles.issueCard}>
-                      <div style={styles.severityBadge}>
-                        {issue.severity.toUpperCase()}
-                      </div>
-
-                      <h3 style={{ marginTop: 10 }}>
-                        {issue.issue}
-                      </h3>
-
-                      <p>
-                        <b>Impact:</b> {issue.impact}
-                      </p>
-
-                      <p>
-                        <b>Fix:</b> {issue.fix}
-                      </p>
-                    </div>
-                  ))}
+                  <h3>{issue.issue}</h3>
+                  <p><b>Impact:</b> {issue.impact}</p>
+                  <p><b>Fix:</b> {issue.fix}</p>
                 </div>
+              ))
+            ) : (
+              <p>No issues found 🎉</p>
+            )}
+          </div>
+
+          {/* CTA WITH HOVER EFFECT */}
+          {latestAuditId && (
+            <div style={styles.ctaWrapper}>
+              <div style={styles.ctaCard}>
+                <h3>Full Report Available</h3>
+                <p>Deep insights, PDF export, and full breakdown.</p>
+
+                <button
+                  onClick={() => navigate(`/report/${latestAuditId}`)}
+                  onMouseEnter={() => setHover(true)}
+                  onMouseLeave={() => setHover(false)}
+                  style={{
+                    ...styles.ctaButton,
+                    background: hover ? "#e5e7eb" : "#fff",
+                    transform: hover ? "translateY(-2px)" : "translateY(0px)",
+                    boxShadow: hover
+                      ? "0 8px 20px rgba(0,0,0,0.15)"
+                      : "0 0 0 rgba(0,0,0,0)",
+                  }}
+                >
+                  📊 View Full Report
+                </button>
               </div>
-            ))}
+            </div>
+          )}
         </>
       )}
 
-      {/* RECENT AUDITS */}
+      {/* HISTORY */}
       <div style={{ marginTop: 60 }}>
         <h2>Recent Audits</h2>
 
-        {history.length > 0 ? (
-          <div style={styles.historyGrid}>
-            {history.map((audit) => (
-              <Link
-                key={audit.id}
-                to={`/report/${audit.id}`}
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                <div style={styles.historyCard}>
-                  <p style={{ margin: 0, fontWeight: 600 }}>
-                    {audit.url}
-                  </p>
-
-                  <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                    <span style={styles.scoreTag}>
-                      SEO: {audit.seoScore}
-                    </span>
-                    <span style={styles.scoreTag}>
-                      UX: {audit.uxScore}
-                    </span>
-                    <span style={styles.scoreTag}>
-                      Performance: {audit.performanceScore}
-                    </span>
-                    <span style={styles.scoreTag}>
-                      Mobile: {audit.mobileScore}
-                    </span>
-                  </div>
-
-                  <p style={{ marginTop: 10, fontSize: 12, opacity: 0.6 }}>
-                    Overall: <b>{audit.overallScore}</b>
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
+        {history.length === 0 ? (
           <p style={{ opacity: 0.6 }}>No audits yet</p>
+        ) : (
+          history.map((audit) => (
+            <Link
+              key={audit.id}
+              to={`/report/${audit.id}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              <div style={styles.historyCard}>
+                <p>{audit.url}</p>
+
+                <div style={styles.historyScores}>
+                  SEO {audit.seoScore} | UX {audit.uxScore} | Perf {audit.performanceScore} | Mob {audit.mobileScore}
+                </div>
+
+                <b>Overall: {audit.overallScore}</b>
+              </div>
+            </Link>
+          ))
         )}
       </div>
     </div>
   );
 }
 
+/* =========================
+   STYLES
+========================= */
 const styles = {
   container: {
     padding: 40,
@@ -200,16 +196,13 @@ const styles = {
   inputBox: {
     display: "flex",
     gap: 10,
-    width: "100%",
   },
 
   input: {
     flex: 1,
     padding: 14,
     borderRadius: 10,
-    border: "none",
-    fontSize: 14,
-    outline: "none",
+    border: "1px solid #ddd",
   },
 
   button: {
@@ -217,57 +210,71 @@ const styles = {
     borderRadius: 10,
     background: "#111",
     color: "#fff",
-    cursor: "pointer",
     border: "1px solid transparent",
+    cursor: "pointer",
+    transition: "all 0.25s ease",
   },
 
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
     gap: 20,
-  },
-
-  issues: {
-    display: "grid",
-    gap: 15,
-    marginTop: 20,
+    marginTop: 30,
   },
 
   issueCard: {
     background: "#fff",
     padding: 20,
     borderRadius: 12,
+    marginTop: 15,
     boxShadow: "0 5px 15px rgba(0,0,0,0.05)",
   },
 
-  severityBadge: {
+  badge: {
     display: "inline-block",
-    padding: "6px 12px",
-    borderRadius: 8,
+    padding: "5px 10px",
+    background: "#eee",
+    borderRadius: 6,
     fontSize: 12,
-    fontWeight: 600,
-    background: "#f0f0f0",
+    marginBottom: 10,
   },
 
-  historyGrid: {
-    display: "grid",
-    gap: 15,
-    marginTop: 20,
+  ctaWrapper: {
+    marginTop: 40,
+    display: "flex",
+    justifyContent: "center",
+  },
+
+  ctaCard: {
+    background: "#111",
+    color: "#fff",
+    padding: 20,
+    borderRadius: 12,
+    textAlign: "center",
+  },
+
+  ctaButton: {
+    marginTop: 10,
+    padding: "10px 16px",
+    background: "#fff",
+    color: "#111",
+    border: "1px solid #ddd",
+    borderRadius: 8,
+    cursor: "pointer",
+    transition: "all 0.25s ease",
   },
 
   historyCard: {
     background: "#fff",
     padding: 15,
     borderRadius: 10,
-    boxShadow: "0 5px 15px rgba(0,0,0,0.05)",
+    marginTop: 10,
+    boxShadow: "0 5px 10px rgba(0,0,0,0.05)",
   },
 
-  scoreTag: {
-    background: "#f0f0f0",
-    padding: "4px 8px",
-    borderRadius: 6,
+  historyScores: {
     fontSize: 12,
-    fontWeight: 500,
+    opacity: 0.7,
   },
 };
 
